@@ -1,0 +1,45 @@
+.feature {
+  &:nth-child(even) {
+    background-color: rgb(176, 176, 176);
+  }
+  &:nth-child(odd) {
+    background: rgb(87, 87, 87);
+    color: white;
+    & svg {
+      color: rgb(230, 230, 230);
+    }
+  }
+  &__img,
+  svg {
+    width: 200px;
+    height: 200px;
+  }
+  &__cart {
+    height: 70%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0 30px;
+    border-radius: 20px;
+  }
+  &__title {
+    font-size: 36px;
+    font-weight: bold;
+  }
+  &__content {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+  }
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  &__subtitle {
+    max-width: 600px;
+    margin-bottom: 10%;
+    font-size: 20px;
+  }
+}

@@ -1,0 +1,88 @@
+.home {
+  &__section {
+    height: 100lvh;
+    overflow-y: hidden;
+    position: sticky;
+    top: 0;
+    will-change: transform;
+    background: white;
+    transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1),
+      opacity 2s cubic-bezier(0.19, 1, 0.22, 1);
+    transform: translateY(0%);
+  }
+}
+.section {
+  transform-origin: 0 0;
+}
+.pagination {
+  position: absolute;
+  right: 4%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  &.white {
+    & button {
+      background: white;
+      &::after {
+        background: black;
+      }
+      &::before {
+        border: 2px solid white;
+      }
+    }
+  }
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  &__button {
+    width: 24px;
+    height: 24px;
+    background: black;
+    border: none;
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    cursor: pointer;
+
+    &::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-radius: 100px;
+      transform: scale(0);
+      opacity: 0;
+      transition: 1s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    &--active {
+      &::after {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    &::before {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      content: "";
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: transparent;
+      border: 2px solid black;
+      border-radius: 100px;
+      opacity: 0;
+      transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+    &:hover {
+      &::before {
+        opacity: 1;
+      }
+    }
+  }
+}
