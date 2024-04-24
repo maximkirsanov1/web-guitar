@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/Header/Header.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/Header/Header.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import "./Header.scss";
+import { Link } from "react-router-dom";
+import { ModalContext } from "../../App";
+import { UserContext } from "../../App";
+import LoginSvg from "../svg/loginSvg";
+import ProfileSvg from "../svg/profileSvg";
+import { useContext } from "react";
+import { CartContext } from "../../App";
+import cartSvg from "../../assets/cart.svg";
+
+/**
+ * Компонент Header, шапка сайта
+ * @param {string} activeLink - Активная страница сайта
+ * @returns {React.ReactElement} Элемент React.
+ * @module Header
+ */
+
+export default function Header({ activeLink }) {
+  const { openModal } = useContext(ModalContext);
+  const { user } = useContext(UserContext);
+  const { cart } = useContext(CartContext);
+
+  return (
+    &lt;>
+      &lt;header className="header">
+        &lt;div className="container container--header">
+          &lt;img src="" alt="" className="logo" />
+          &lt;nav className="header__menu">
+            &lt;ul className="header__list">
+              &lt;li
+                className={`header__item ${
+                  activeLink === "hello" ? "header__item--active" : ""
+                }`}
+              >
+                &lt;Link to={"/"}>
+                  &lt;img src="" alt="" className="header__item__img" />
+                  Главная
+                &lt;/Link>
+              &lt;/li>
+              &lt;li
+                className={`header__item ${
+                  activeLink === "catalog" ? "header__item--active" : ""
+                }`}
+              >
+                &lt;Link to={"/catalog"}>
+                  &lt;img src="" alt="" className="header__item__img" />
+                  Каталог
+                &lt;/Link>
+              &lt;/li>
+              &lt;li
+                className={`header__item ${
+                  activeLink === "contacts" ? "header__item--active" : ""
+                }`}
+              >
+                &lt;Link to={"/contacts"}>
+                  &lt;img src="" alt="" className="header__item__img" />
+                  Контакты
+                &lt;/Link>
+              &lt;/li>
+              &lt;li
+                className={`header__item ${
+                  activeLink === "about" ? "header__item--active" : ""
+                }`}
+              >
+                &lt;Link to={"/about"}>
+                  &lt;img src="" alt="" className="header__item__img" />О нас
+                &lt;/Link>
+              &lt;/li>
+            &lt;/ul>
+
+            &lt;div className="lk">
+              {user ? (
+                &lt;>
+                  &lt;Link to={"/profile"}>
+                    &lt;button className="lk__button">
+                      &lt;div className="lk__img">
+                        &lt;ProfileSvg>&lt;/ProfileSvg>
+                      &lt;/div>
+                      &lt;div className="lk__text"> {user.name}&lt;/div>
+                    &lt;/button>
+                  &lt;/Link>
+                &lt;/>
+              ) : (
+                &lt;>
+                  &lt;button
+                    className="lk__button"
+                    onClick={() => openModal("login")}
+                  >
+                    &lt;div className="lk__img">
+                      &lt;LoginSvg>&lt;/LoginSvg>
+                    &lt;/div>
+                    &lt;div className="lk__text">Войти&lt;/div>
+                  &lt;/button>
+                &lt;/>
+              )}
+              &lt;button className="lk__cart" onClick={() => openModal("cart")}>
+                &lt;img src={cartSvg} alt="" />
+                &lt;div className="lk__cart__count">{cart.length}&lt;/div>
+              &lt;/button>
+            &lt;/div>
+          &lt;/nav>
+        &lt;/div>
+      &lt;/header>
+    &lt;/>
+  );
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Header.html">Header</a></li><li><a href="module-HelloComponent.html">HelloComponent</a></li><li><a href="module-ItemContent.html">ItemContent</a></li><li><a href="module-MainContent.html">MainContent</a></li><li><a href="module-Modal.html">Modal</a></li><li><a href="module-ProfileContent.html">ProfileContent</a></li><li><a href="module-Rating.html">Rating</a></li><li><a href="module-ReviewsContent.html">ReviewsContent</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed Apr 24 2024 12:18:02 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

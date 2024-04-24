@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/MainContent/Main.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/MainContent/Main.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import "./Main.scss";
+import { getItems } from "../../../api/getItems.js";
+import { useContext, useEffect, useRef, useState } from "react";
+import { CartContext } from "../../App.jsx";
+import findSvg from "../../assets/find.svg";
+import editSvg from "../../assets/edit.svg";
+import deleteSvg from "../../assets/delete.svg";
+import { ModalContext } from "../../App.jsx";
+import { deleteItem } from "../../../api/deleteItem.js";
+import { UserContext } from "../../App.jsx";
+import { LoaderContext } from "../../App.jsx";
+import StarSvg from "../svg/starSvg.jsx";
+import plusItemJpg from "../../assets/plusItem.jpg";
+import { Link } from "react-router-dom";
+
+/**
+ * Компонент MainContent, отображается каталог с товарами
+ * @module MainContent
+ * @returns {React.ReactElement} Элемент React.
+ */
+
+export default function MainContent() {
+  const { setIsLoading, closeLoader } = useContext(LoaderContext);
+  const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [activeCategory, setActiveCategory] = useState("Все");
+  const { cart, addToCart } = useContext(CartContext);
+  const findItemRef = useRef();
+  const { openModal } = useContext(ModalContext);
+  const { user } = useContext(UserContext);
+  const handleDeleteItem = async (id) => {
+    try {
+      await deleteItem(id);
+      await handleGetItems();
+    } catch (error) {
+      return;
+    }
+  };
+  const changeCategory = (category) => {
+    if (category === "Все") {
+      setFilteredItems(items);
+    } else {
+      const filteredItems = items.filter((item) => item.category === category);
+      setFilteredItems(filteredItems);
+    }
+    setActiveCategory(category);
+  };
+  const handleGetItems = async () => {
+    const items = await getItems();
+    setItems(items);
+    setFilteredItems(items);
+    closeLoader();
+  };
+  const findItems = () => {
+    const searchValue = findItemRef.current.value.toLowerCase();
+    const filteredItems = items.filter((item) =>
+      item.title.toLowerCase().includes(searchValue)
+    );
+    if (filteredItems.length > 0) {
+      setFilteredItems(filteredItems);
+    } else {
+      setFilteredItems(items);
+    }
+  };
+  useEffect(() => {
+    setIsLoading(true);
+    handleGetItems();
+  }, []);
+  return (
+    &lt;>
+      &lt;div className="main">
+        &lt;div className="main__menu">
+          &lt;div className="main__categories">
+            {[
+              "Все",
+              "Акустические",
+              "Электрогитары",
+              "Бас-гитары",
+              "Усилители",
+            ].map((category, index) => (
+              &lt;button
+                key={index}
+                className={`main__category ${
+                  activeCategory === category ? "main__category--active" : ""
+                }`}
+                onClick={() => changeCategory(category)}
+              >
+                {category}
+              &lt;/button>
+            ))}
+          &lt;/div>
+          &lt;div className="main__find">
+            &lt;input
+              type="text"
+              className="main__find__input"
+              ref={findItemRef}
+              onChange={findItems}
+              placeholder="Поиск"
+            />
+            &lt;img src={findSvg} alt="" className="main__find__img" />
+          &lt;/div>
+        &lt;/div>
+        &lt;ul className="items">
+          {!user || user.role === "user" ? (
+            ""
+          ) : (
+            &lt;>
+              &lt;li className="item" onClick={() => openModal("addItem")}>
+                &lt;div className="img-block">
+                  &lt;img src={plusItemJpg} alt="" />
+                &lt;/div>
+              &lt;/li>
+            &lt;/>
+          )}
+
+          {filteredItems.map((item, index) => {
+            const isInCart = cart.some((cartItem) => cartItem._id === item._id);
+            return (
+              &lt;li key={index} data-id={item._id} className="item">
+                &lt;Link to={`/product/${item._id}`} className="link">
+                  &lt;div className="img-block">
+                    &lt;img src={item.img} alt="" loading="lazy" />
+                    {item.rating !== 0 ? (
+                      &lt;div className="item__rating">
+                        {item.rating}
+                        &lt;StarSvg>&lt;/StarSvg>
+                        &lt;div className="item__rating__count">{` (${item.ratingCount})`}&lt;/div>
+                      &lt;/div>
+                    ) : (
+                      ""
+                    )}
+                  &lt;/div>
+                &lt;/Link>
+                &lt;div className="item__about">
+                  &lt;h2 className="item__title">{item.title}&lt;/h2>
+                  &lt;h4 className="item__category">{item.category}&lt;/h4>
+                &lt;/div>
+                &lt;div className="item__bottom">
+                  &lt;div className="item__buy">
+                    &lt;div className="item__cost">{item.cost} р.&lt;/div>
+                    {isInCart ? (
+                      &lt;button
+                        className="button button-add button-add--active"
+                        disabled={true}
+                      >
+                        В корзине
+                      &lt;/button>
+                    ) : (
+                      &lt;button
+                        className="button button--add"
+                        onClick={() => addToCart(item)}
+                      >
+                        В корзину
+                      &lt;/button>
+                    )}
+                  &lt;/div>
+
+                  {!user || user.role === "user" ? (
+                    ""
+                  ) : (
+                    &lt;>
+                      &lt;div className="buttons">
+                        &lt;button
+                          className="button button--edit"
+                          onClick={() => openModal("edit", item)}
+                        >
+                          &lt;img src={editSvg} alt="" />
+                        &lt;/button>
+                        &lt;button
+                          className="button button--delete"
+                          onClick={() => handleDeleteItem(item._id)}
+                        >
+                          &lt;img src={deleteSvg} alt="" />
+                        &lt;/button>
+                      &lt;/div>
+                    &lt;/>
+                  )}
+                &lt;/div>
+              &lt;/li>
+            );
+          })}
+        &lt;/ul>
+      &lt;/div>
+    &lt;/>
+  );
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Header.html">Header</a></li><li><a href="module-HelloComponent.html">HelloComponent</a></li><li><a href="module-ItemContent.html">ItemContent</a></li><li><a href="module-MainContent.html">MainContent</a></li><li><a href="module-Modal.html">Modal</a></li><li><a href="module-ProfileContent.html">ProfileContent</a></li><li><a href="module-Rating.html">Rating</a></li><li><a href="module-ReviewsContent.html">ReviewsContent</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed Apr 24 2024 12:18:02 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/Modal/Modal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/Modal/Modal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import "./Modal.scss";
+import { ModalContext, UserContext } from "../../App";
+import { useContext, useEffect, useRef, useState } from "react";
+import { registration } from "../../../api/registration";
+import { validation } from "../../../api/validation";
+import closeSvg from "../../assets/close.svg";
+import { authorization } from "../../../api/authorization";
+import { useCookies } from "react-cookie";
+import { CartContext } from "../../App";
+import Cart from "../Cart/Cart";
+import { addItem } from "../../../api/addItem";
+import { editItem } from "../../../api/editItem";
+import { makeOrder } from "../../../api/makeOrder";
+import { apiFindAddress } from "../../../api/apiFindAddress";
+import Rating from "../Rating/Rating";
+import { sendRating } from "../../../api/sendRating";
+
+/**
+ * Компонент Modal, отвечает за модальное окно
+ * @module Modal
+ * @returns {React.ReactElement} Элемент React.
+ */
+export default function Modal() {
+  const [cookies, setCookie, removeCookie] = useCookies(["auth"]);
+  const [error, setError] = useState(null);
+  const { cart, removeFromCart, plusItem, minusItem, calculateTotal, setCart } =
+    useContext(CartContext);
+  const { modal, openModal, closeModal } = useContext(ModalContext);
+  /**
+   * Поля необходимые в модальном окне (опционально в зависимости от типа модального окна)
+   */
+  const { user } = useContext(UserContext);
+  const emailLogin = useRef();
+  const passLogin = useRef();
+  const nameReg = useRef();
+  const emailReg = useRef();
+  const passReg = useRef();
+  const pass2Reg = useRef();
+  const title = useRef();
+  const cost = useRef();
+  const img = useRef();
+  const category = useRef();
+  const imgEdit = useRef();
+  const address = useRef();
+  const description = useRef();
+  const property = useRef();
+  const review = useRef();
+  const [idItem, setIdItem] = useState(null);
+  const isAddress = useRef(false);
+  const [addresses, setAddreses] = useState([]);
+  const [currentRating, setCurrentRating] = useState(null);
+  const [reviewLength, setReviewLength] = useState(0);
+
+  const handleScroll = (e, textarea) => {
+    const textArea = textarea.current;
+    const label = textArea.nextSibling;
+    if (e.target.scrollTop > 0) {
+      label.style.opacity = "0";
+    } else {
+      label.style.opacity = "1";
+    }
+  };
+
+  const handleSendRating = async (e) => {
+    e.preventDefault();
+    await sendRating(idItem, currentRating, review.current.value);
+  };
+
+  const handleMakeOrder = async (e) => {
+    e.preventDefault();
+    if (!isAddress || addresses.length > 0) {
+      setError("Неверно введен адрес");
+      return;
+    }
+    const response = await makeOrder(
+      emailReg.current.value,
+      nameReg.current.value,
+      cart,
+      address.current.value
+    );
+    if (response !== true) {
+      setError(response);
+    } else {
+      setCart([]);
+      closeModal();
+    }
+    try {
+    } catch (error) {
+      return;
+    }
+  };
+
+  const selectAddress = async (e, newAddress) => {
+    e.preventDefault();
+    if (addresses.length === 1) {
+      setAddreses([]);
+      address.current.value = newAddress;
+      isAddress.current = true;
+      return;
+    }
+    if (newAddress !== address.current.value) {
+      address.current.value = newAddress;
+      await findAddress(address);
+    } else {
+      address.current.value = newAddress;
+      setAddreses([]);
+    }
+  };
+
+  /**
+   * МЕТОД ПОДСКАЗКА ПО ВВОДУ АДРЕСА
+   */
+  const findAddress = async (address) => {
+    inputChange(address);
+    const currentAddress = address.current.value;
+    if (currentAddress.length > 6) {
+      const addresses = await apiFindAddress(currentAddress);
+      setAddreses(addresses);
+    } else {
+      setAddreses([]);
+    }
+  };
+  const inputChange = (inputRef) => {
+    setError(null);
+    const input = inputRef.current;
+    const label = input.nextSibling;
+    if (input.value.trim() !== "") {
+      label.classList.add("label--active");
+    } else {
+      label.classList.remove("label--active");
+    }
+    if (inputRef === review) {
+      setReviewLength(input.value.length);
+    }
+  };
+
+  const changeImg = (e) => {
+    const img = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataURL = reader.result;
+      imgEdit.current.src = dataURL;
+    };
+    if (img) {
+      reader.readAsDataURL(img);
+    }
+  };
+
+  /**
+   * МЕТОД АВТОРИЗАЦИИ
+   */
+  const login = async (e) => {
+    e.preventDefault();
+    const check = validation({
+      email: emailLogin.current.value,
+      pass: passLogin.current.value,
+    });
+    if (check === true) {
+      const response = await authorization(
+        emailLogin.current.value,
+        passLogin.current.value,
+        setCookie
+      );
+      if (response) {
+        alert("Вы вошли в аккаунт!");
+        closeModal();
+      } else {
+        setError("Неверные почта или пароль! Попробуйте еще раз.");
+      }
+    } else {
+      setError(check);
+    }
+  };
+
+  /**
+   * МЕТОД РЕГИСТРАЦИИ
+   */
+  const signUp = async (e) => {
+    e.preventDefault();
+    const check = validation({
+      name: nameReg.current.value,
+      email: emailReg.current.value,
+      pass: passReg.current.value,
+      pass2: pass2Reg.current.value,
+    });
+    if (check === true) {
+      const response = await registration(
+        nameReg.current.value,
+        emailReg.current.value,
+        passReg.current.value,
+        setCookie
+      );
+      if (response === true) {
+        alert("Аккаунт успешно создан!");
+        closeModal();
+      } else {
+        setError("Аккаунт с таким электронным адресом уже существует.");
+      }
+    } else {
+      setError(check);
+    }
+  };
+  useEffect(() => {
+    if (modal.typeModal === "order" &amp;&amp; user) {
+      nameReg.current.value = user.name;
+      emailReg.current.value = user.email;
+      const labelName = nameReg.current.nextSibling;
+      const labelEmail = emailReg.current.nextSibling;
+      labelName.classList.add("label--active");
+      labelEmail.classList.add("label--active");
+    }
+    if (modal.typeModal === "edit") {
+      if (modal.data) {
+        title.current.value = modal.data.title;
+        cost.current.value = modal.data.cost;
+        description.current.value = modal.data.description;
+        const propertyString = modal.data.propertyArray.reduce(
+          (acc, curr, index, array) => {
+            if (index === array.length - 1) {
+              return acc + curr.property + ": " + curr.value;
+            } else {
+              return acc + curr.property + ": " + curr.value + "\n";
+            }
+          },
+          ""
+        );
+        property.current.value = propertyString;
+        const labelTitle = title.current.nextSibling;
+        const labelCost = cost.current.nextSibling;
+        const labelDescr = description.current.nextSibling;
+        const labelProperty = property.current.nextSibling;
+        labelTitle.classList.add("label--active");
+        labelCost.classList.add("label--active");
+        labelDescr.classList.add("label--active");
+        labelProperty.classList.add("label--active");
+        category.current.value = modal.data.category;
+        imgEdit.current.src = modal.data.img;
+        setIdItem(modal.data._id);
+      }
+    }
+    if (modal.typeModal === "addItem") {
+      title.current.value = null;
+      category.current.value = "Акустические";
+      cost.current.value = null;
+      img.current.files = null;
+      img.current.value = null;
+      imgEdit.current.src = "";
+      const labelTitle = title.current.nextSibling;
+      const labelCost = cost.current.nextSibling;
+      labelTitle.classList.remove("label--active");
+      labelCost.classList.remove("label--active");
+    }
+    if (modal.typeModal === "review") {
+      if (modal.data) {
+        setIdItem(modal.data.id);
+        setCurrentRating(modal.data.rating);
+      }
+    }
+  }, [modal]);
+
+  return (
+    &lt;>
+      &lt;div className={`modal ${modal.isModal ? "" : "modal--hidden"}`}>
+        &lt;div className="modal__content">
+          {modal.typeModal === "login" ? (
+            &lt;>
+              &lt;h2 className="modal__title">Авторизация&lt;/h2>
+              &lt;form className="modal__form">
+                &lt;div className="input__block">
+                  &lt;input
+                    type="email"
+                    id="email"
+                    ref={emailLogin}
+                    onChange={() => inputChange(emailLogin)}
+                  />
+                  &lt;label htmlFor="email">Почта&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="password"
+                    id="pass"
+                    ref={passLogin}
+                    onChange={() => inputChange(passLogin)}
+                  />
+                  &lt;label htmlFor="pass">Пароль&lt;/label>
+                &lt;/div>
+                &lt;div className="modal__buttons">
+                  &lt;button
+                    type="submit"
+                    className="modal__button"
+                    onClick={(e) => login(e)}
+                  >
+                    Войти
+                  &lt;/button>
+                  &lt;button
+                    type="submit"
+                    className="modal__button modal__button--change"
+                    onClick={() => openModal("signUp")}
+                  >
+                    Регистрация
+                  &lt;/button>
+                &lt;/div>
+                &lt;div className="modal__error">{error}&lt;/div>
+              &lt;/form>
+            &lt;/>
+          ) : modal.typeModal === "signUp" ? (
+            &lt;>
+              &lt;h2 className="modal__title">Регистрация&lt;/h2>
+              &lt;form className="modal__form">
+                &lt;div className="input__block">
+                  &lt;input
+                    type="text"
+                    id="name"
+                    ref={nameReg}
+                    onChange={() => inputChange(nameReg)}
+                  />
+                  &lt;label htmlFor="name">Имя&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="email"
+                    id="email"
+                    ref={emailReg}
+                    onChange={() => inputChange(emailReg)}
+                  />
+                  &lt;label htmlFor="email">Почта&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="password"
+                    id="pass"
+                    ref={passReg}
+                    onChange={() => inputChange(passReg)}
+                  />
+                  &lt;label htmlFor="pass">Пароль&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="password"
+                    id="pass2"
+                    ref={pass2Reg}
+                    onChange={() => inputChange(pass2Reg)}
+                  />
+                  &lt;label htmlFor="pass2">Повторите пароль&lt;/label>
+                &lt;/div>
+                &lt;div className="modal__buttons">
+                  &lt;button
+                    type="submit"
+                    className="modal__button"
+                    onClick={(e) => signUp(e)}
+                  >
+                    Создать аккаунт
+                  &lt;/button>
+                  &lt;button
+                    type="submit"
+                    className="modal__button modal__button--change"
+                    onClick={() => openModal("login")}
+                  >
+                    Войти
+                  &lt;/button>
+                &lt;/div>
+                &lt;div className="modal__error">{error}&lt;/div>
+              &lt;/form>
+            &lt;/>
+          ) : modal.typeModal === "cart" ? (
+            &lt;>
+              &lt;div className="cart">
+                &lt;h2>Корзина&lt;/h2>
+                &lt;ul className="cart__items">
+                  {cart.map((item, index) => (
+                    &lt;li key={index} className="cart__item">
+                      &lt;img src={item.img} alt="" className="cart__img" />
+                      &lt;h4 className="cart__title">{item.title}&lt;/h4>
+                      &lt;div className="cart__price">
+                        {item.quantity * item.cost} р.
+                      &lt;/div>
+                      &lt;div className="cart__quantity-block">
+                        &lt;button
+                          className="button cart__minus-item"
+                          onClick={() => {
+                            minusItem(item._id);
+                          }}
+                        >
+                          -
+                        &lt;/button>
+                        &lt;div
+                          type="text"
+                          name=""
+                          id=""
+                          className="cart__quantity"
+                        >
+                          {item.quantity}{" "}
+                        &lt;/div>
+                        &lt;button
+                          className="button cart__plus-item"
+                          onClick={() => {
+                            plusItem(item._id);
+                          }}
+                        >
+                          +
+                        &lt;/button>
+                      &lt;/div>
+                      &lt;button
+                        className="button button-remove"
+                        onClick={() => removeFromCart(item._id)}
+                      >
+                        del
+                      &lt;/button>
+                    &lt;/li>
+                  ))}
+                &lt;/ul>
+                {cart.length > 0 ? (
+                  &lt;div className="cart__summ">
+                    &lt;h3 className="cart__summ__price">
+                      Итого: {calculateTotal()} р.
+                    &lt;/h3>
+                    &lt;button className="cart__summ__offer">
+                      &lt;div
+                        className="cart__summ__offer-text"
+                        onClick={() => openModal("order")}
+                      >
+                        Оформить заказ
+                      &lt;/div>
+                    &lt;/button>
+                  &lt;/div>
+                ) : (
+                  ""
+                )}
+              &lt;/div>
+            &lt;/>
+          ) : modal.typeModal === "order" ? (
+            &lt;>
+              &lt;>
+                &lt;h2 className="modal__title">Оформление заказа&lt;/h2>
+                &lt;form className="modal__form">
+                  &lt;div className="input__block">
+                    &lt;input
+                      type="text"
+                      id="name"
+                      ref={nameReg}
+                      onChange={() => inputChange(nameReg)}
+                    />
+                    &lt;label htmlFor="name">Имя&lt;/label>
+                  &lt;/div>
+                  &lt;div className="input__block">
+                    &lt;input
+                      type="email"
+                      id="email"
+                      ref={emailReg}
+                      onChange={() => inputChange(emailReg)}
+                    />
+                    &lt;label htmlFor="email">Почта&lt;/label>
+                  &lt;/div>
+                  &lt;div className="input__block address">
+                    &lt;input
+                      type="text"
+                      id="address"
+                      ref={address}
+                      onChange={() => findAddress(address)}
+                    />
+                    &lt;label htmlFor="adress">Адрес&lt;/label>
+                    &lt;ul
+                      className={`address__list ${
+                        addresses.length > 0 ? "address__list--active" : ""
+                      }`}
+                    >
+                      {addresses.map((address, index) => (
+                        &lt;li className="address__item" key={index}>
+                          &lt;button
+                            className="address__button"
+                            onClick={(e) => selectAddress(e, address.value)}
+                          >
+                            {address.value}
+                          &lt;/button>
+                        &lt;/li>
+                      ))}
+                    &lt;/ul>
+                  &lt;/div>
+                  &lt;div className="modal__buttons">
+                    &lt;button
+                      type="submit"
+                      className="modal__button"
+                      onClick={(e) => handleMakeOrder(e)}
+                    >
+                      Оформить заказ
+                    &lt;/button>
+                  &lt;/div>
+                  &lt;div className="modal__error">{error}&lt;/div>
+                &lt;/form>
+              &lt;/>
+            &lt;/>
+          ) : modal.typeModal === "addItem" ? (
+            &lt;>
+              &lt;h2 className="modal__title">Добавить товар&lt;/h2>
+              &lt;form className="modal__form">
+                &lt;div className="input__block">
+                  &lt;input
+                    type="text"
+                    id="title"
+                    ref={title}
+                    onChange={() => inputChange(title)}
+                  />
+                  &lt;label htmlFor="title">Название&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;select
+                    name="category"
+                    id="category"
+                    className="admin__input-category"
+                    ref={category}
+                  >
+                    &lt;option value="Акустические">Акустические&lt;/option>
+                    &lt;option value="Бас-гитары">Бас-гитары&lt;/option>
+                    &lt;option value="Электрогитары">Электрогитары&lt;/option>
+                    &lt;option value="Усилители">Усилители&lt;/option>
+                  &lt;/select>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="text"
+                    id="cost"
+                    ref={cost}
+                    onChange={() => inputChange(cost)}
+                  />
+                  &lt;label htmlFor="cost">Стоимость&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block input__block--row">
+                  &lt;img src="" alt="" ref={imgEdit} />
+                  &lt;input
+                    type="file"
+                    id="image"
+                    ref={img}
+                    onChange={changeImg}
+                  />
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;textarea
+                    type="text"
+                    id="description"
+                    ref={description}
+                    onChange={() => inputChange(description)}
+                    onScroll={(e) => handleScroll(e, description)}
+                  />
+                  &lt;label htmlFor="description">Описание&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;textarea
+                    type="text"
+                    id="property"
+                    ref={property}
+                    onChange={() => inputChange(property)}
+                    onScroll={(e) => handleScroll(e, property)}
+                  />
+                  &lt;label htmlFor="description">Характеристики&lt;/label>
+                &lt;/div>
+                &lt;button
+                  type="submit"
+                  className="modal__button modal__button--change"
+                  onClick={(e) =>
+                    addItem(
+                      e,
+                      title,
+                      cost,
+                      img,
+                      category,
+                      description,
+                      property
+                    )
+                  }
+                >
+                  Добавить
+                &lt;/button>
+
+                &lt;div className="modal__error">{error}&lt;/div>
+              &lt;/form>
+            &lt;/>
+          ) : modal.typeModal === "edit" ? (
+            &lt;>
+              &lt;h2 className="modal__title">Редактировать товар&lt;/h2>
+              &lt;form className="modal__form">
+                &lt;div className="input__block">
+                  &lt;input
+                    type="text"
+                    id="title"
+                    ref={title}
+                    onChange={() => inputChange(title)}
+                  />
+                  &lt;label htmlFor="title">Название&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;select
+                    name="category"
+                    id="category"
+                    className="admin__input-category"
+                    ref={category}
+                  >
+                    &lt;option value="Акустические">Акустические&lt;/option>
+                    &lt;option value="Бас-гитары">Бас-гитары&lt;/option>
+                    &lt;option value="Электрогитары">Электрогитары&lt;/option>
+                    &lt;option value="Усилители">Усилители&lt;/option>
+                  &lt;/select>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;input
+                    type="text"
+                    id="cost"
+                    ref={cost}
+                    onChange={() => inputChange(cost)}
+                  />
+                  &lt;label htmlFor="cost">Стоимость&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block input__block--row">
+                  &lt;img src="" alt="" ref={imgEdit} />
+                  &lt;input
+                    type="file"
+                    id="image"
+                    ref={img}
+                    onChange={changeImg}
+                  />
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;textarea
+                    type="text"
+                    id="description"
+                    ref={description}
+                    onChange={() => inputChange(description)}
+                    onScroll={(e) => handleScroll(e, description)}
+                  />
+                  &lt;label htmlFor="description">Описание&lt;/label>
+                &lt;/div>
+                &lt;div className="input__block">
+                  &lt;textarea
+                    type="text"
+                    id="property"
+                    ref={property}
+                    onChange={() => inputChange(property)}
+                    onScroll={(e) => handleScroll(e, property)}
+                  />
+                  &lt;label htmlFor="description">Характеристики&lt;/label>
+                &lt;/div>
+
+                &lt;button
+                  type="submit"
+                  className="modal__button modal__button--change"
+                  onClick={(e) =>
+                    editItem(
+                      e,
+                      title,
+                      cost,
+                      img,
+                      category,
+                      idItem,
+                      description,
+                      property
+                    )
+                  }
+                >
+                  Редактировать
+                &lt;/button>
+
+                &lt;div className="modal__error">{error}&lt;/div>
+              &lt;/form>
+            &lt;/>
+          ) : modal.typeModal === "review" ? (
+            &lt;>
+              &lt;h2 className="modal__title">Оставить отзыв&lt;/h2>
+              &lt;form className="modal__form">
+                &lt;Rating
+                  id={idItem}
+                  isRated={true}
+                  rating={currentRating}
+                >&lt;/Rating>
+                &lt;div className="input__block input__block--review">
+                  &lt;textarea
+                    type="text"
+                    id="review"
+                    ref={review}
+                    onChange={() => inputChange(review)}
+                    onScroll={(e) => handleScroll(e, review)}
+                    maxLength={450}
+                  />
+                  &lt;label htmlFor="review">Отзыв&lt;/label>
+                  &lt;span className="textarea-length">{reviewLength}/450&lt;/span>
+                &lt;/div>
+
+                &lt;button
+                  type="submit"
+                  className="modal__button modal__button--review"
+                  onClick={(e) => handleSendRating(e)}
+                >
+                  Отправить отзыв
+                &lt;/button>
+
+                &lt;div className="modal__error">{error}&lt;/div>
+              &lt;/form>
+            &lt;/>
+          ) : (
+            ""
+          )}
+          &lt;button className="modal__close" onClick={() => closeModal()}>
+            &lt;img src={closeSvg} alt="" />
+          &lt;/button>
+        &lt;/div>
+      &lt;/div>
+    &lt;/>
+  );
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Header.html">Header</a></li><li><a href="module-HelloComponent.html">HelloComponent</a></li><li><a href="module-ItemContent.html">ItemContent</a></li><li><a href="module-MainContent.html">MainContent</a></li><li><a href="module-Modal.html">Modal</a></li><li><a href="module-ProfileContent.html">ProfileContent</a></li><li><a href="module-Rating.html">Rating</a></li><li><a href="module-ReviewsContent.html">ReviewsContent</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed Apr 24 2024 12:18:02 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

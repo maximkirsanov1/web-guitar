@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: App.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: App.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "./global.scss";
+import Catalog from "./pages/Catalog.jsx";
+import Admin from "./pages/Admin.jsx";
+import Home from "./pages/Home.jsx";
+import Item from "./pages/Item.jsx";
+import Reviews from "./pages/Reviews.jsx";
+import { CookiesProvider, useCookies } from "react-cookie";
+import { verifyToken } from "../api/verifyToken.js";
+import { getUser } from "../api/getUser.js";
+import Profile from "./pages/Profile.jsx";
+import React from "react";
+import Loader from "./components/Loader/Loader.jsx";
+
+export const CartContext = React.createContext();
+export const ModalContext = React.createContext();
+export const UserContext = React.createContext();
+export const LoaderContext = React.createContext();
+
+/**
+ * Основной компонент приложения App
+ * @returns {React.ReactElement} Элемент React.
+ */
+function App() {
+  /**
+   * Состояние экрана загрузки
+   */
+  const [isLoading, setIsLoading] = useState(true);
+  const closeLoader = () => {
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+  };
+
+  /**
+   * Состояние куки (токен пользователя)
+   */
+  const [cookies, setCookie, removeCookie] = useCookies(["auth"]);
+
+  /**
+   * Состояние модального окна
+   */
+  const [modal, setModal] = useState({
+    isModal: false,
+    typeModal: "login",
+    data: null,
+  });
+
+  /**
+   * Состояние корзины
+   */
+  const [cart, setCart] = useState(
+    JSON.parse(localStorage.getItem("cart")) || []
+  );
+
+  /**
+   * Состояние активного пользователя
+   */
+  const [user, setUser] = useState("");
+
+  const openModal = (type, data) => {
+    const documentWidth = parseInt(document.documentElement.clientWidth);
+    const windowWidth = parseInt(window.innerWidth);
+    const scrollbarWidth = windowWidth - documentWidth;
+    document.body.style.overflowY = "hidden";
+    document.body.style.marginRight = scrollbarWidth + "px";
+
+    setModal({ isModal: true, typeModal: type, data: data });
+  };
+  const closeModal = () => {
+    document.body.style.overflowY = "visible";
+    document.body.style.marginRight = 0;
+    setModal({ ...modal, isModal: false, data: null });
+  };
+
+  const addToCart = (item) => {
+    setCart((prevCart) => [...prevCart, { ...item, quantity: 1 }]);
+  };
+  const removeFromCart = (id) => {
+    setCart((prevCart) => prevCart.filter((item) => item._id !== id));
+  };
+  const plusItem = (id) => {
+    setCart((prevCart) => {
+      const updatedCart = prevCart.map((cartItem) => {
+        if (cartItem._id === id) {
+          return { ...cartItem, quantity: cartItem.quantity + 1 };
+        }
+        return cartItem;
+      });
+      return updatedCart;
+    });
+  };
+  const minusItem = (id) => {
+    setCart((prevCart) => {
+      const updatedCart = prevCart.map((cartItem) => {
+        if (cartItem._id === id &amp;&amp; cartItem.quantity > 1) {
+          return { ...cartItem, quantity: cartItem.quantity - 1 };
+        }
+        if (cartItem._id === id &amp;&amp; cartItem.quantity === 1) {
+          removeFromCart(id);
+        }
+        return cartItem;
+      });
+      return updatedCart;
+    });
+  };
+  const calculateTotal = () => {
+    return cart.reduce((total, item) => {
+      return total + item.quantity * item.cost;
+    }, 0);
+  };
+
+  const checkTokens = async () => {
+    const access = await verifyToken(cookies, setCookie);
+    if (access) {
+      const user = await getUser(access);
+      setUser(user);
+    } else {
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkTokens();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  return (
+    &lt;>
+      &lt;LoaderContext.Provider value={{ isLoading, setIsLoading, closeLoader }}>
+        &lt;ModalContext.Provider value={{ modal, openModal, closeModal }}>
+          &lt;CartContext.Provider
+            value={{
+              cart,
+              addToCart,
+              removeFromCart,
+              plusItem,
+              minusItem,
+              calculateTotal,
+              setCart,
+            }}
+          >
+            &lt;UserContext.Provider value={{ user, setUser }}>
+              &lt;CookiesProvider defaultSetOptions={{ path: "/" }}>
+                &lt;Loader>&lt;/Loader>
+                &lt;Router>
+                  &lt;Routes>
+                    &lt;Route path="/" element={&lt;Home />} />
+                    &lt;Route path="/catalog" element={&lt;Catalog />} />
+                    &lt;Route path="/admin" element={&lt;Admin />} />
+                    &lt;Route path="/profile" element={&lt;Profile />} />
+                    &lt;Route path="/product/:id" element={&lt;Item />} />
+                    &lt;Route path="/reviews" element={&lt;Reviews />} />
+                  &lt;/Routes>
+                &lt;/Router>
+              &lt;/CookiesProvider>
+            &lt;/UserContext.Provider>
+          &lt;/CartContext.Provider>
+        &lt;/ModalContext.Provider>
+      &lt;/LoaderContext.Provider>
+    &lt;/>
+  );
+}
+
+export default App;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Header.html">Header</a></li><li><a href="module-HelloComponent.html">HelloComponent</a></li><li><a href="module-ItemContent.html">ItemContent</a></li><li><a href="module-MainContent.html">MainContent</a></li><li><a href="module-Modal.html">Modal</a></li><li><a href="module-ProfileContent.html">ProfileContent</a></li><li><a href="module-Rating.html">Rating</a></li><li><a href="module-ReviewsContent.html">ReviewsContent</a></li></ul><h3>Global</h3><ul><li><a href="global.html#App">App</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed Apr 24 2024 12:18:02 GMT+0300 (Москва, стандартное время)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
